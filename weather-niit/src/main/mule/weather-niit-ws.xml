@@ -105,6 +105,6 @@ payload]]></ee:set-payload>
 				</ee:transform>
 			</otherwise>
 		</choice>
-		<logger level="INFO" doc:name="Logger" doc:id="8c87cb2c-37b4-4f5c-a9b2-32ec1d6b722b" />
+		<logger level="INFO" doc:name="Logger" doc:id="8c87cb2c-37b4-4f5c-a9b2-32ec1d6b722b" message='"Test"'/>
 	</flow>
 </mule>
