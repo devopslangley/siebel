@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:wsc="http://www.mulesoft.org/schema/mule/wsc"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:ws="http://www.mulesoft.org/schema/mule/ws"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/wsc http://www.mulesoft.org/schema/mule/wsc/current/mule-wsc.xsd
+http://www.mulesoft.org/schema/mule/ws http://www.mulesoft.org/schema/mule/ws/current/mule-ws.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+
+
+	<wsc:config name="Web_Service_Consumer_Config" doc:name="Web Service Consumer Config" doc:id="3bd49040-bccf-45f3-920c-fee2febfcab9" >
+		<wsc:connection wsdlLocation="http://mu.learn.mulesoft.com/delta?wsdl" service="TicketServiceService" port="TicketServicePort"/>
+	</wsc:config>
+	<wsc:config name="weather-web_Service_Consumer_Config" doc:name="Web Service Consumer Config" doc:id="bdc98b44-d1d8-4d59-85e6-7dae3e5eb995" >
+		<wsc:connection wsdlLocation="https://www.w3schools.com/xml/tempconvert.asmx?wsdl" service="TempConvert" port="TempConvertSoap" address="http://www.w3schools.com/xml/tempconvert.asmx" />
+	</wsc:config>
+	<flow name="weather-niit-wsFlow" doc:id="062be0d7-1414-4e00-9ff0-4a013341f5d2" >
+		<http:listener doc:name="Listener" doc:id="49752ddb-270f-4d7f-83e4-af830fc9657d" config-ref="HTTP_Listener_config" path="/{temp}" allowedMethods="GET"/>
+		<set-variable value="#[message.attributes.uriParams.temp]" doc:name="Set Variable" doc:id="e4c443ed-df52-4838-8ca4-dd1e8cca5d36" variableName="temp"/>
+		<choice doc:name="Choice" doc:id="c3b032cf-4aa2-49f9-bd05-923dd3a1a35f" >
+			<when expression='#[vars.temp == "50"]' doc:id="d74eb179-3484-45cf-9de8-9601dd12cee1">
+				<ee:transform doc:name="Transform Message" doc:id="181f9603-83c3-4821-9e39-fcbddd5cb147" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/xml
+ns ns0 https://www.w3schools.com/xml/
+---
+{
+	FahrenheitToCelsius: {
+		Fahrenheit: 10
+	}
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<wsc:consume operation="FahrenheitToCelsius" doc:name="Consume" doc:id="b5483f82-9cf1-49e8-a252-15f09b222d74" config-ref="weather-web_Service_Consumer_Config"/>
+				<ee:transform doc:name="Transform Message" doc:id="2e8bc9da-f1f6-4254-9d2e-05bdc7e5e28f" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Transform Message" doc:id="443203f9-3c44-4545-9ff2-368ca9954b9c">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/xml
+ns soapxml https://www.w3schools.com/xml/
+ns soap http://www.w3.org/2003/05/soap-envelope
+---
+{
+	 soapxml#CelsiusToFahrenheit: {
+		Celsius: 10
+	}
+}
+]]></ee:set-payload>
+			</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="myheader" ><![CDATA[%dw 2.0
+output application/xml
+ns soap12 http://www.w3.org/2003/05/soap-envelope
+ns xsi http://www.w3.org/2001/XMLSchema-instance
+ns xsd http://www.w3.org/2001/XMLSchema
+---
+soap12#Envelope: {
+	headers:{}
+	
+}]]></ee:set-variable>
+					</ee:variables>
+		</ee:transform>
+				<wsc:consume doc:name="Consume" doc:id="57fc52df-4813-4f45-8156-b18145661f04" config-ref="weather-web_Service_Consumer_Config" operation="CelsiusToFahrenheit">
+					<wsc:message >
+					
+					
+						<wsc:headers ><![CDATA[#[%dw 2.0
+output application/xml
+ns soap12 http://www.w3.org/2003/05/soap-envelope
+ns xsi http://www.w3.org/2001/XMLSchema-instance
+ns xsd http://www.w3.org/2001/XMLSchema
+ns SOAPAction https://www.w3schools.com/xml/CelsiusToFahrenheit
+---
+"headers" :{ soap12#Envelope:""
+	
+}]]]></wsc:headers>
+
+
+
+
+
+
+					</wsc:message>
+		</wsc:consume>
+				<ee:transform doc:name="Transform Message" doc:id="01b9fb5f-398a-4ecd-9029-99dc62c5854e" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+		<logger level="INFO" doc:name="Logger" doc:id="8c87cb2c-37b4-4f5c-a9b2-32ec1d6b722b" />
+	</flow>
+</mule>
